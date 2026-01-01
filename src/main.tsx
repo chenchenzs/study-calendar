@@ -2,7 +2,7 @@ import { ConfigProvider } from 'antd';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
-import './index.css'
+import './index.scss'
 import locale from 'antd/locale/zh_CN';
 import dayjs from 'dayjs';
 
