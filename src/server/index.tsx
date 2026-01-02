@@ -2,6 +2,14 @@ import initSqlJs from 'sql.js';
 import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 import initData from '../utils/initData';
 
+
+const dbVersion = '0.0.1'; // 每次发布加一位 控制用户localstorage数据更新？
+
+if(localStorage.getItem('dbVersion') !== dbVersion) {  // 版本更新时清空数据 --> 或者把用户操作的数据单独存起来
+  localStorage.removeItem('myDatabase');
+  localStorage.setItem('dbVersion', dbVersion);
+}
+
 const SQL = await initSqlJs({
   locateFile: () => sqlWasmUrl // 指定WASM文件路径
 });

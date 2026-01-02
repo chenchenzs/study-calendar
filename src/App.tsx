@@ -166,10 +166,10 @@ export default function App() {
     const listData = getListData(value)?.data || [];
     return (
       < >
-        {listData.map((item, index) => (
+        {listData.map((item) => (
           <Badge
             style={{ display: 'block' }}
-            key={index}
+            key={item.id}
             status={type2StatusMap[item.significance as 'proficiency' | 'understand' | 'know'] as BadgeProps['status']}
             text={item.content}
           />
