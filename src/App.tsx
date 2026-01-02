@@ -1,23 +1,25 @@
-import dayjs from 'dayjs'
+import dayjs from 'dayjs';
 import { v4 as uuid } from 'uuid';
-import { Fragment, useState, createContext, useRef, useContext, useEffect, useId, } from 'react'
-import { Badge, Button, Calendar, Col, Form, Input, message, Modal, Row, Select, Table } from 'antd'
-import type { CalendarProps, BadgeProps } from 'antd'
+import { Fragment, useState, createContext, useRef, useContext, useEffect, useId, } from 'react';
+import { Badge, Button, Calendar, Col, Form, Input, message, Modal, Row, Select, Table } from 'antd';
+import useCalendarStore from './store';
+import type { CalendarProps, BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { Dayjs } from 'dayjs'
-import type { SelectInfo } from 'antd/lib/calendar/generateCalendar'
-import './App.scss'
+import type { Dayjs } from 'dayjs';
+import type { SelectInfo } from 'antd/lib/calendar/generateCalendar';
+import './App.scss';
 
 
-interface RecordType {
+interface RecordItem {
   day: number;
   month: number;
   year: number;
+  id: string;
   source: string;
 }
 interface DataListItem {
   id: string;
-  type: string | undefined;
+  significance: string;
   content: string;
 }
 
@@ -27,68 +29,93 @@ const TYPE_DICT = [
   { label: '了解', value: 'know' },
 ]
 
+const type2StatusMap = {
+  proficiency: 'error',
+  understand: 'warning',
+  know: 'success',
+}
+
 
 const { Item } = Form;
+const initDate = { year: dayjs().year(), month: dayjs().month() + 1 }
+
 export default function App() {
 
-  const [record, setRecord] = useState<RecordType | null>(null);
+  const [record, setRecord] = useState<RecordItem | null>(null);
+  const [isEdit, setIsEdit] = useState(false);
+  const [realDate, setRealDate] = useState(initDate);
   const [dataSource, setDataSource] = useState<DataListItem[]>([]);
   const [visible, setVisible] = useState(false);
   const EditableContext = createContext(null);
 
-  function getListData(value: Dayjs) {
-    let listData: { type: string; content: string }[] = []; // Specify the type of listData
-    switch (value.date()) {
-      case 8:
-        listData = [
-          { type: 'warning', content: 'This is warning event.This is warning event.' },
-          { type: 'success', content: 'This is usual event1.' },
-        ];
-        break;
-      case 10:
-        listData = [
-          { type: 'warning', content: 'This is warning event.' },
-          { type: 'success', content: 'This is usual event.' },
-          { type: 'error', content: 'This is error event.' },
-        ];
-        break;
-      case 15:
-        listData = [
-          { type: 'warning', content: 'This is warning event' },
-          { type: 'success', content: 'This is very long usual event......' },
-          { type: 'error', content: 'This is error event 1.' },
-          { type: 'error', content: 'This is error event 2.' },
-          { type: 'error', content: 'This is error event 3.' },
-          { type: 'error', content: 'This is error event 4.' },
-        ];
-        break;
-      default:
-    }
-    return listData || [];
+  const {
+    list,
+    addCalendarData,
+    fetchCalendarData
+  } = useCalendarStore();
+
+  function getListData(value: Dayjs): RecordItem & { data: DataListItem[] } {
+    const day = value.date();
+    const month = value.month() + 1;
+    const year = value.year();
+    const listData = list.find(item => item.day === day && item.month === month && item.year === year);
+    return listData || {};
   };
 
   function handleSelect(date: Dayjs, selectInfo: SelectInfo) {
+
+    if (realDate?.month !== date.month() + 1) return;
+
     const { source } = selectInfo;
     if (source === 'date') {
-      const day = dayjs(date).date();
-      const month = dayjs(date).month() + 1;
-      const year = dayjs(date).year();
-      setRecord({ day, month, year, source })
-      setDataSource(getListData(date))
+      const { day, month, year, data, id } = getListData(date)
+
+      const recordData = {
+        day: day || date.date(),
+        month: month || date.month() + 1,
+        year: year || date.year(),
+        id,
+        source
+      }
+      setIsEdit(!!id);
+      setRecord(recordData)
+      setDataSource(data || []);
     }
     setVisible(true);
   }
 
-  function handleSubmit() {
-    console.log('dataSource', dataSource)
-    const isEmpty = dataSource.some(item => !item.type || !item.content);
-    if (isEmpty) return message.error('请填写完整信息');
+  function handlePanelChange(date: any) {
+    const dateData = { year: date.year(), month: date.month() + 1 }
+    setRealDate(dateData);
+    fetchCalendarData(dateData);
   }
+
 
   function handleCancel() {
     setVisible(false);
     setRecord(null);
+    setDataSource([]);
+    setIsEdit(false);
   }
+
+  function handleSubmit() {
+    const isEmpty = dataSource.some(item => !item.significance || !item.content);
+    if (isEmpty) return message.error('请填写完整信息');
+    const payload = {
+      ...record,
+      id: record?.id || uuid(),
+      data: dataSource
+    }
+    addCalendarData(payload).then(res => {
+      if (res.code === 200) {
+        fetchCalendarData(realDate)
+        handleCancel();
+        message.success('保存成功');
+      }
+
+    })
+  }
+
 
   function handleSave(row: DataListItem) {
 
@@ -112,7 +139,7 @@ export default function App() {
 
   function handleAdd() {
     const newData = {
-      type: undefined,
+      significance: undefined as unknown as 'proficiency' | 'understand' | 'know',
       content: '',
       id: uuid()
     };
@@ -136,14 +163,14 @@ export default function App() {
   };
 
   function dateCellRender(value: Dayjs) {
-    const listData = getListData(value);
+    const listData = getListData(value)?.data || [];
     return (
       < >
         {listData.map((item, index) => (
           <Badge
             style={{ display: 'block' }}
             key={index}
-            status={item.type as BadgeProps['status']}
+            status={type2StatusMap[item.significance as 'proficiency' | 'understand' | 'know'] as BadgeProps['status']}
             text={item.content}
           />
         ))}
@@ -153,7 +180,7 @@ export default function App() {
 
   function renderTableCell(dataIndex: keyof DataListItem, save: () => void): React.ReactNode {
     switch (dataIndex) {
-      case 'type':
+      case 'significance':
         return (
           <Select
             options={TYPE_DICT}
@@ -162,24 +189,24 @@ export default function App() {
           />
         )
       case 'content':
-        return <Input placeholder='请输入内容' allowClear onPressEnter={save} onBlur={save} />;
+        return <Input showCount placeholder='请输入内容' allowClear onPressEnter={save} onBlur={save} />;
       default:
         return null;
     }
   }
 
-  function EditableRow({ index, ...props }) {
+  function EditableRow({ index, ...props }: any) {
     const [form] = Form.useForm();
     return (
       <Form form={form} component={false}>
-        <EditableContext.Provider value={form}>
+        <EditableContext.Provider value={form as any}>
           <tr {...props} />
         </EditableContext.Provider>
       </Form>
     );
   };
 
-  function EditableCell(props) {
+  function EditableCell(props: any) {
     const {
       title,
       editable,
@@ -205,17 +232,7 @@ export default function App() {
       form.setFieldsValue({ [dataIndex]: record[dataIndex] });
     };
     let childNode = children;
-    // if (editable) {
-    //   childNode = (
-    //     <Form.Item
-    //       style={{ margin: 0 }}
-    //       name={dataIndex}
-    //       rules={[{ required: true, message: `${title}不能为空.` }]}
-    //     >
-    //       {renderTableCell(dataIndex, save)}
-    //     </Form.Item>
-    //   )
-    // }
+
     if (editable) {
       childNode = (editing || !record[dataIndex]) ? (
         <Item
@@ -231,11 +248,10 @@ export default function App() {
           style={{ paddingInlineEnd: 24 }}
           onClick={toggleEdit}
         >
-          {dataIndex === 'type' ? TYPE_DICT.find(item => item.value === record[dataIndex])?.label : record[dataIndex]}
+          {dataIndex === 'significance' ? TYPE_DICT.find(item => item.value === record[dataIndex])?.label : record[dataIndex]}
         </div>
       );
     }
-    console.log('children', children);
 
     return <td key={record?.id} {...restProps}>{childNode}</td>;
   };
@@ -252,13 +268,13 @@ export default function App() {
     return info.originNode;
   };
 
-  const columns: ColumnsType<RecordType> = [
+  const columns: ColumnsType<DataListItem> = [
     {
       title: '重要性',
-      dataIndex: 'type',
+      dataIndex: 'significance',
       onCell: record => ({
         record,
-        dataIndex: 'type',
+        dataIndex: 'significance',
         editable: true,
         title: '重要性',
         handleSave,
@@ -283,12 +299,17 @@ export default function App() {
     },
   ]
 
+  useEffect(() => {
+    fetchCalendarData(realDate);
+  }, []);
+
   return (
     <Fragment>
       <Calendar
         className="calendarWrap"
         cellRender={cellRender}
         onSelect={handleSelect}
+        onPanelChange={handlePanelChange}
         styles={{
           root: {
             borderRadius: '8px',
@@ -298,10 +319,9 @@ export default function App() {
       <Modal
         destroyOnHidden
         width={900}
-        title={`${record ? '编辑' : '新增'}记录`}
+        title={`${isEdit ? '编辑' : '新增'}记录`}
         open={visible}
         onOk={handleSubmit}
-
         onCancel={handleCancel}
 
       >
@@ -310,6 +330,7 @@ export default function App() {
           Add a record
         </Button>
         <Table
+          bordered
           components={{
             body: {
               row: EditableRow,
@@ -319,7 +340,6 @@ export default function App() {
           rowKey="id"
           pagination={dataSource?.length > 9 ? undefined : false}
           style={{ minHeight: 300 }}
-          bordered
           dataSource={dataSource}
           columns={columns}
         />
