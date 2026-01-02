@@ -21,8 +21,8 @@ const initData : any[] = [
         "day": 3,
         "data": [
             {
-                "significance": "proficiency",
-                "content": "3245",
+                "significance": "know",
+                "content": "23456",
                 "id": "04a7e159-aca7-4409-b40c-557cc0e797da"
             }
         ]

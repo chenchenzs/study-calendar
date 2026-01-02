@@ -3,11 +3,11 @@ import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 import initData from '../utils/initData';
 
 
-const dbVersion = '0.0.1'; // 每次发布加一位 控制用户localstorage数据更新？
+const dbVersion = '0.0.1'; // 每次发布加一位 控制用户localstorage数据更新
 
-if(localStorage.getItem('dbVersion') !== dbVersion) {  // 版本更新时清空数据 --> 或者把用户操作的数据单独存起来
+if (localStorage.getItem('dbVersion') !== dbVersion) {  // 版本更新时清空数据 --> 或者把用户操作过的数据单独存起来?
   localStorage.removeItem('myDatabase');
-  localStorage.setItem('dbVersion', dbVersion);
+  localStorage.removeItem('dbVersion');
 }
 
 const SQL = await initSqlJs({
@@ -27,7 +27,11 @@ db.run(`
     day INTEGER,
     data TEXT)`);
 
-if (!localStorage.getItem('myDatabase')) {  // 第一次运行时初始化数据, 有缺陷->清空会重新设值
+if (!localStorage.getItem('myDatabase') && !localStorage.getItem('dbVersion')) {
+  initBaseData(); // 版本号且数据为空时 初始化数据
+}
+
+function initBaseData() {
 
   db.run("BEGIN TRANSACTION");
 
@@ -61,6 +65,7 @@ if (!localStorage.getItem('myDatabase')) {  // 第一次运行时初始化数据
     console.error("插入失败:", error);
     throw error;
   }
+  localStorage.setItem('dbVersion', dbVersion);
   saveDatabase();
 }
 
