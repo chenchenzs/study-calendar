@@ -12,7 +12,7 @@ type Action = {
 };
 
 
-const useCalendarStore = create<State & Action>((set, get) => ({
+const useCalendarStore = create<State & Action>((set) => ({
 	list: [],
 	fetchCalendarData: async function (prams) {
 		const res = getCalendarData(prams) || [];
