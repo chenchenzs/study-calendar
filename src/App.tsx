@@ -323,9 +323,7 @@ export default function App() {
         open={visible}
         onOk={handleSubmit}
         onCancel={handleCancel}
-
       >
-
         <Button onClick={handleAdd} type="primary" style={{ marginBottom: 16, float: 'right' }}>
           Add a record
         </Button>
