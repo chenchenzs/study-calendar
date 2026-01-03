@@ -1,11 +1,9 @@
 # React + TypeScript + Vite + Scss + Zustand + Sql.js + Antd 
+  1. 前端学习计划日历(↑↑↑)
+  2. 主要内容为 JavaScript基础及 React + Antd 应用
+  3. 作为静态页面发布在github，用户数据存储在localstorage
+  4. github page地址---> https://chenchenzs.github.io/study-calendar/
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
 ## React Compiler
 
